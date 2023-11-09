@@ -1,8 +1,22 @@
 ## Projects
 
 ### Age Puzzle
-- Man A gives information about his sons to Man B until man B can determine their ages.
-- As an observer of the conversation, the task is to determine the ages of man A's sons.
+__Problem Statement:__
+
+Mr. A tells Mr. B that he has three sons. Mr. A then tells Mr. B that he will
+give him a series of facts about his chldren. 
+As soon as Mr. B has enough information to determine the ages of the 
+sons he is to tell Mr. A to stop.
+  
+__Mr. A to Mr. B:__ "The sum of my boys' ages is 13."
+
+__Mr. A to Mr. B:__ "The product of their ages is your age."
+
+__Mr. A to Mr. B:__ "My eldest son lives in the attic."
+
+__Mr. B to Mr. A:__ "Stop, I know the ages of your sons."
+ 
+__Question:__ What are the ages of the three sons?
 
 
 ### Number Puzzle
