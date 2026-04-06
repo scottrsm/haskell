@@ -28,7 +28,6 @@ firstValidSums, firstValidProds, pSumValid, sPrdValid, secondValidProds, solutio
 
 where 
 
-import Data.List (group, sort)
 import qualified Data.Set as Set
 
 
@@ -67,7 +66,7 @@ findPairProds ls p = [(e1,e2) | e1 <- ls, e2 <- ls, e1 <= e2, p == e1 * e2]
 
 -- | Return the unique elements of the list <ls> in sorted order.
 unique :: Ord a => [a] -> [a]
-unique = map head . group . sort
+unique = Set.toAscList . Set.fromList
 
             
 -- | A simple number is one which has a unique factorization with respect 
