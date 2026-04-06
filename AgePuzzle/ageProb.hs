@@ -1,9 +1,9 @@
-{-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE LambdaCase #-}
 {- |
 __A module that solves the Age Problem Puzzle__
   
 Mr. A tells a Mr. B that he has three sons. Mr. A then tells Mr. B that he will
-give him facts about his chldren until he has enough information to determine
+give him facts about his children until he has enough information to determine
 their ages. Mr. A tells Mr. B to stop him when Mr. B has enough information.
   
 __Mr. A to Mr. B:__ "The sum of my boys' ages is 13."
@@ -29,6 +29,7 @@ where
 
 import System.Environment  (getArgs)
 import Data.List (foldl', groupBy, sortBy)
+import Text.Read (readMaybe)
 
 -- | Type 'Children' is a list of ages.
 type Children = [Int]
@@ -36,6 +37,7 @@ type Children = [Int]
 -- | List all possible children in canonical order (oldest to youngest) which sum to n.
 -- These are lists of length 3 that are integers. 
 -- Note: There are cases where some children may be the same age.
+kids :: Int -> [Children]
 kids n = [ [x,y,z] | x <- [1..n], y <- [1..x], z <- [1..y], x + y + z == n]
 
 -- | Take a list of children and return the product of their ages.
@@ -54,14 +56,15 @@ prodGroup = groupBy (\x y -> prod x == prod y)
 -- | Filter for lists of length > 1
 -- These are the ambiguous lists; otherwise 
 -- Mr. B would know the answer and since he didn't stop Mr. A 
--- from givinb more information, he needed more info
+-- from giving more information, he needed more info
 -- to determine the answer.
 ambiguousProds :: [[Children]] -> [[Children]]
-ambiguousProds = filter (\x -> length x > 1) 
+ambiguousProds = filter (\case (_:_:_) -> True; _ -> False) 
 
 -- | Check a child list for an eldest son.
 oldestSon :: Children -> Bool
-oldestSon x = head x /= x!!1
+oldestSon (a:b:_) = a /= b
+oldestSon _        = False
 
 -- | Get Potential Solutions.
 -- Strategy: Get all potential solutions based on the following criterion:
@@ -74,6 +77,7 @@ oldestSon x = head x /= x!!1
 --
 -- 3. Within the groups, filter out potential solutions that
 --    don't have an eldest son.
+potentialSolns :: Int -> [[Children]]
 potentialSolns n = map (filter oldestSon) $ ambiguousProds (prodGroup (prodSort n))
 
 -- | Get Solutions:
@@ -82,17 +86,19 @@ potentialSolns n = map (filter oldestSon) $ ambiguousProds (prodGroup (prodSort 
 -- singleton lists -- as these are the ones which allow
 -- Mr. B to know the answer -- and then concatenate them
 -- together to get all possible solutions.
-solns n = concat $ filter (\x -> length x == 1) (potentialSolns n)
+solns :: Int -> [Children]
+solns n = concat $ filter (\case [_] -> True; _ -> False) (potentialSolns n)
 
           
 -- | Have user input the sum of the three sons ages, this program will provide all solutions.
 -- That is: program_name 13
+main :: IO ()
 main = do args <- getArgs
-          if length args /= 1
-          then putStrLn "Usage: ageProb sum-of-ages"
-          else
-              do
-                putStr "List of solutions: " 
-                print $ solns (read (head args) :: Int)
+          case args of
+            [arg] -> case readMaybe arg :: Maybe Int of
+                       Just n  -> do putStr "List of solutions: "
+                                     print $ solns n
+                       Nothing -> putStrLn "Error: argument must be a number"
+            _     -> putStrLn "Usage: ageProb sum-of-ages"
 
             

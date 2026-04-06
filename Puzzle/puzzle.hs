@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {- |
            __Problem Statement:__ 
 
@@ -22,50 +23,60 @@ __Mr. S:__ "Now I know them too."
  The code below solves this problem. The answer is: (a,b) == (4,13).
 -}
 module Main 
-(addPair, mulPair, formSums, formProds, findPairSums, findPairProds, unique, isSimpleNum, getPossibleSumProds, getSums, getProds, sums, prods, 
+(addPair, mulPair, formSums, formProds, findPairSums, findPairProds, unique, isSimpleNum, getPossibleSumProds, getSums, getProds, allSums, allProds, 
 firstValidSums, firstValidProds, pSumValid, sPrdValid, secondValidProds, solutions, main )
 
 where 
 
-import Data.List (foldl', group, intersect, sort)
+import Data.List (group, sort)
+import qualified Data.Set as Set
 
 
 
 -- | Add elements of a pair.
+addPair :: (Int, Int) -> Int
 addPair  = uncurry (+)
 
 -- | Multiply elements of a pair.
+mulPair :: (Int, Int) -> Int
 mulPair = uncurry (*)
 
 -- | Compute all possible sums of a list of integers, <ls>, without regard to the
 -- sum order. That is, in the resulting list of sums, only count one of 
 -- (x + y) or (y + x).
+formSums :: [Int] -> [Int]
 formSums ls =  [ addPair (e1,e2) | e1 <- ls, e2 <- ls, e1 <= e2]
 
 -- | Compute all possible products of a list of integers, <ls>, without regard to the
 -- product order. That is, in the resulting list of products, only count one of 
 -- (x * y) or (y * x).
+formProds :: [Int] -> [Int]
 formProds ls =  [ mulPair (e1,e2) | e1 <- ls, e2 <- ls, e1 <= e2]
 
 
 -- | Find all the ways (discounting order) that <s> can be written as a 
 -- sum from elements from <ls>.
+findPairSums :: [Int] -> Int -> [(Int, Int)]
 findPairSums ls s = [(e1,e2) | e1 <- ls, e2 <- ls, e1 <= e2, s == e1 + e2]
 
 -- | Find all the ways (discounting order) that <p> can be written as a 
 -- product from elements of <ls>.
+findPairProds :: [Int] -> Int -> [(Int, Int)]
 findPairProds ls p = [(e1,e2) | e1 <- ls, e2 <- ls, e1 <= e2, p == e1 * e2]
 
 
 -- | Return the unique elements of the list <ls> in sorted order.
-unique ls = map head (group $ sort ls)
+unique :: Ord a => [a] -> [a]
+unique = map head . group . sort
 
             
 -- | A simple number is one which has a unique factorization with respect 
 -- to the list <ls>. That is, there is only one 
 -- pair (discounting order) (e1,e2) in <ls>, such that p = e1 * e2.
-isSimpleNum ls p = let prods = findPairProds ls p in
-                   length prods == 1 
+isSimpleNum :: [Int] -> Int -> Bool
+isSimpleNum ls p = case findPairProds ls p of
+                     [_] -> True
+                     _   -> False
                       
 {- |
  Get "possible" sums/product combinations. 
@@ -90,40 +101,42 @@ isSimpleNum ls p = let prods = findPairProds ls p in
 
  than one combination and more than one product.)
  -}
-getPossibleSumProds ls sums =
+getPossibleSumProds :: [Int] -> [Int] -> [(Int, [Int])]
+getPossibleSumProds ls ss =
     -- Get [(s, [pr])]: All the sums with their corresponding products.
     let posProds = 
             map (\s -> (s, map mulPair (findPairSums ls s))) 
-                sums
+                ss
     in
       -- Filter out any [pr] lists of length == 1.
       filter noSimpleNums posProds
           where
-            noSimpleNums (s,ps) =
+            noSimpleNums (_,ps) =
                 -- Get all product pairs for each product.
                 let pfacs = map (findPairProds ls) ps 
                 in
-                  -- Form a list of True/False for each list based on length of list
-                  let  bools = map (\l -> length l > 1) pfacs
-                  in
-                    -- Return True if all list have length > 1
-                    foldl' (&&) True bools
+                  -- Return True if all lists have length > 1
+                  all (\case (_:_:_) -> True; _ -> False) pfacs
 
 
 -- | Get all possible sums that correspond to a product p.
+getSums :: [Int] -> Int -> [Int]
 getSums ls p = map addPair (findPairProds ls p)
 
 -- | Get all possible products that correspond to a sum s.
+getProds :: [Int] -> Int -> [Int]
 getProds ls s = map mulPair (findPairSums ls s)
 
 
 -- | Define and solve problem with previous functions.
 
 -- | Get the unique sums formed by adding all pairs from the two lists.
-sums ls = unique (formSums ls)
+allSums :: [Int] -> [Int]
+allSums ls = unique (formSums ls)
 
 -- | Get the unique products formed by multiplying all pairs from the two lists.
-prods ls = unique (formProds ls)
+allProds :: [Int] -> [Int]
+allProds ls = unique (formProds ls)
 
 {- | Get the first cut at valid info. A list of the form:
  
@@ -137,48 +150,60 @@ prods ls = unique (formProds ls)
 
  Get the first cut at the valid sums. These are the potential sums.
 -}
-firstValidSums ls sums =
-    map fst (getPossibleSumProds ls sums)
+firstValidSums :: [Int] -> [Int] -> [Int]
+firstValidSums ls ss =
+    map fst (getPossibleSumProds ls ss)
 
 -- | Get the first cut at the valid products.
 -- These are the potential products.
-firstValidProds ls sums =
-    unique $ concatMap snd (getPossibleSumProds ls sums)
+firstValidProds :: [Int] -> [Int] -> [Int]
+firstValidProds ls ss =
+    unique $ concatMap snd (getPossibleSumProds ls ss)
 
 -- | A filter, testing that for a given product there is one and only one sum from
 -- the list of potential sums (first potential list).
-pSumValid prd ls firstValidSums  =
-    let sums = getSums ls prd in
-    length (sums `intersect` firstValidSums) == 1
+pSumValid :: Int -> [Int] -> Set.Set Int -> Bool
+pSumValid prd ls fvSums =
+    let prdSums = getSums ls prd in
+    case filter (`Set.member` fvSums) prdSums of
+      [_] -> True
+      _   -> False
 
 {- | Second pass at valid products.                           
 
- Mr. P: "Now I now the numbers."
+ Mr. P: "Now I know the numbers."
 
  Mr. P has a product for which there is only one way to produce the corresponding sum
 
  (from the latest list of potential sums).
 -}
-secondValidProds ls sums firstValidProds firstValidSums =
-    [ p | p <- firstValidProds, pSumValid p ls firstValidSums]
+secondValidProds :: [Int] -> [Int] -> [Int] -> [Int] -> [Int]
+secondValidProds ls _ss fvProds fvSums =
+    let fvSumsSet = Set.fromList fvSums
+    in [ p | p <- fvProds, pSumValid p ls fvSumsSet]
 
     
 -- | A filter, testing that for a given sum there is one and only one product from
 -- the list of potential products (second potential list).
-sPrdValid sum ls secondValidProds = let prds = getProds ls sum
-                                    in
-                                      length (prds `intersect` secondValidProds) == 1
+sPrdValid :: Int -> [Int] -> Set.Set Int -> Bool
+sPrdValid s ls svProds = let prds = getProds ls s
+                         in
+                           case filter (`Set.member` svProds) prds of
+                             [_] -> True
+                             _   -> False
                                                                                  
 {- | Second pass on valid sums.
 
- Mr. S: "Now I now the numbers."
+ Mr. S: "Now I know the numbers."
 
  Mr. S has a sum for which there is only one way to produce the corresponding product
 
  (from the latest list of potential products).
 -}
-secondValidSums ls firstValidSums secondValidProds =
-    [ s | s <- firstValidSums, sPrdValid s ls secondValidProds]
+secondValidSums :: [Int] -> [Int] -> [Int] -> [Int]
+secondValidSums ls fvSums svProds =
+    let svProdsSet = Set.fromList svProds
+    in [ s | s <- fvSums, sPrdValid s ls svProdsSet]
 
 
 {- | Find all the pairs (a,b) such that a + b is one of the sums, <sums>, 
@@ -191,30 +216,22 @@ secondValidSums ls firstValidSums secondValidProds =
 
  which have sums in the list of potential sums and products in the list of potential products.
 -}
+solutions :: [Int] -> [(Int, Int)]
 solutions ls =
-    let ss = sums ls in
-    
-    -- Get the first potential lists of sums and products.
-    let fvs = firstValidSums ls ss
-        fvp = firstValidProds ls ss in
-    
-    -- The potential products that Mr P might have.
-    let svp = secondValidProds ls ss fvp fvs in
-    
-    -- The potential sums that Mr S might have.
-    let svs = secondValidSums ls fvs svp in
-    
-    -- Solution for a potential sum, find all pairs whose products
-    -- are in the list of potential products (svp).
-    let sols' s = let sPairs = findPairSums ls s in
-                  [ pair | pair <- sPairs, mulPair pair `elem` svp ] in
-    
-    -- Collect all of the solutions from svs -- the potential sums.
-    concatMap sols' svs
+    let ss   = allSums ls
+        fvs  = firstValidSums ls ss
+        fvp  = firstValidProds ls ss
+        svp  = secondValidProds ls ss fvp fvs
+        svs  = secondValidSums ls fvs svp
+        svpSet = Set.fromList svp
+        sols' s = let sPairs = findPairSums ls s in
+                  [ pair | pair <- sPairs, mulPair pair `Set.member` svpSet ]
+    in concatMap sols' svs
           
                      
 
 -- | Main entry point. Return the solution pairs.
+main :: IO ()
 main = do print "Solution pairs: "
           print  (solutions [2..100])
 
