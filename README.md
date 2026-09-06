@@ -53,3 +53,7 @@ cabal run puzzle -- 99         # numbers in [2,99]
 cabal test
 cabal haddock                  # regenerate the API documentation
 ```
+
+`cabal haddock` writes the HTML under `dist-newstyle/.../doc/html/puzzles/`.
+The `AgePuzzle/doc/` and `Puzzle/doc/` directories are an older (2023) snapshot of
+that output from before the code was split into library modules, and are not regenerated.
