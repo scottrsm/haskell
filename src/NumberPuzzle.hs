@@ -21,10 +21,15 @@ __Mr. S:__ "Now I know them too."
             __Problem Solution:__ 
 
  The code below solves this problem. The answer is: (a,b) == (4,13).
+
+ __Note:__ The classic (Freudenthal) form of this puzzle bounds the /sum/ (a + b <= 100)
+ rather than each number. This version bounds each number by the upper limit of the
+ interval (100 by default; @puzzle 99@ uses [2,99]); it has the same unique answer, (4,13),
+ for both 100 and 99, and no solution for small intervals such as [2,50].
 -}
-module Main 
+module NumberPuzzle 
 (addPair, mulPair, formSums, formProds, findPairSums, findPairProds, unique, isSimpleNum, getPossibleSumProds, getSums, getProds, allSums, allProds, 
-firstValidSums, firstValidProds, pSumValid, sPrdValid, secondValidProds, solutions, main )
+firstValidSums, firstValidProds, pSumValid, sPrdValid, secondValidProds, secondValidSums, solutions )
 
 where 
 
@@ -86,19 +91,17 @@ isSimpleNum ls p = case findPairProds ls p of
 
  has the property that all x * y can be written as a product from <ls> 
 
- in more than one way.
+ in more than one way, /and/ that the sum itself can be written in more than one way.
 
  This function returns a list of the form: [s, [pr]] where s is a sum made from ls + ls and [pr] are 
 
- all off the possible products that can be made of numbers from ls * ls which sum to s.
+ all of the possible products that can be made of numbers from ls * ls which sum to s.
 
- (We need this as Mr S. says that he doesn't know what the pair is. 
+ (We need this as Mr S. says that he knew Mr. P didn't know -- every product he could
 
- The only way for Mr S. to know the pair is that there be only one one 
+ have been given is ambiguous -- and that he doesn't know the pair either: there must be
 
- pair of numbers that add to his sum. So we only look at sums that have more 
-
- than one combination and more than one product.)
+ more than one pair of numbers that add to his sum.)
  -}
 getPossibleSumProds :: [Int] -> [Int] -> [(Int, [Int])]
 getPossibleSumProds ls ss =
@@ -107,9 +110,14 @@ getPossibleSumProds ls ss =
             map (\s -> (s, map mulPair (findPairSums ls s))) 
                 ss
     in
-      -- Filter out any [pr] lists of length == 1.
-      filter noSimpleNums posProds
+      -- Keep only sums with more than one decomposition, all of whose products are ambiguous.
+      filter (\sp -> ambiguousSum sp && noSimpleNums sp) posProds
           where
+            -- "I don't know either": more than one pair adds to the sum.
+            ambiguousSum (_,ps) = case ps of
+                                    (_:_:_) -> True
+                                    _       -> False
+            -- "I knew you didn't know": every product has more than one factorization.
             noSimpleNums (_,ps) =
                 -- Get all product pairs for each product.
                 let pfacs = map (findPairProds ls) ps 
@@ -141,11 +149,13 @@ allProds ls = unique (formProds ls)
  
  (s, ps), where s is a valid sum and ps are the possible products.
 
- Mr S: "I knew you didn't"
+ Mr S: "I knew you didn't. I don't know either."
 
  Mr S has a sum which has the property that all possible ways of producing
 
- it have the property that each of their products can be produced more than one way.
+ it have the property that each of their products can be produced more than one way,
+
+ and which can itself be produced in more than one way.
 
  Get the first cut at the valid sums. These are the potential sums.
 -}
@@ -176,8 +186,8 @@ pSumValid prd ls fvSums =
 
  (from the latest list of potential sums).
 -}
-secondValidProds :: [Int] -> [Int] -> [Int] -> [Int] -> [Int]
-secondValidProds ls _ss fvProds fvSums =
+secondValidProds :: [Int] -> [Int] -> [Int] -> [Int]
+secondValidProds ls fvProds fvSums =
     let fvSumsSet = Set.fromList fvSums
     in [ p | p <- fvProds, pSumValid p ls fvSumsSet]
 
@@ -220,18 +230,9 @@ solutions ls =
     let ss   = allSums ls
         fvs  = firstValidSums ls ss
         fvp  = firstValidProds ls ss
-        svp  = secondValidProds ls ss fvp fvs
+        svp  = secondValidProds ls fvp fvs
         svs  = secondValidSums ls fvs svp
         svpSet = Set.fromList svp
         sols' s = let sPairs = findPairSums ls s in
                   [ pair | pair <- sPairs, mulPair pair `Set.member` svpSet ]
     in concatMap sols' svs
-          
-                     
-
--- | Main entry point. Return the solution pairs.
-main :: IO ()
-main = do print "Solution pairs: "
-          print  (solutions [2..100])
-
-

@@ -1,0 +1,40 @@
+cabal-version:      2.4
+name:               puzzles
+version:            1.0.0
+synopsis:           Solvers for the "age" and "sum and product" logic puzzles
+license:            MIT
+license-file:       LICENSE
+author:             R. Scott McIntire
+build-type:         Simple
+extra-doc-files:    README.md
+
+common shared
+    default-language: Haskell2010
+    ghc-options:      -Wall -Wcompat -O2
+    build-depends:    base >= 4.14 && < 5
+
+library
+    import:           shared
+    hs-source-dirs:   src
+    exposed-modules:  AgeProb
+                      NumberPuzzle
+    build-depends:    containers >= 0.6
+
+executable ageProb
+    import:           shared
+    hs-source-dirs:   app/ageProb
+    main-is:          Main.hs
+    build-depends:    puzzles
+
+executable puzzle
+    import:           shared
+    hs-source-dirs:   app/puzzle
+    main-is:          Main.hs
+    build-depends:    puzzles
+
+test-suite spec
+    import:           shared
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Main.hs
+    build-depends:    puzzles

@@ -38,3 +38,18 @@ __Mr. S:__ "Now I know them too."
 
  __Question:__ What are the numbers a and b?
 
+
+## Building and running
+
+The repository is a small cabal project: the puzzle logic lives in the library
+modules `src/AgeProb.hs` and `src/NumberPuzzle.hs`, the executables in `app/`, and
+the tests in `test/Main.hs`.
+
+```
+cabal build
+cabal run ageProb -- 13        # List of solutions: [[9,2,2]]
+cabal run puzzle               # numbers in [2,100]: [(4,13)]
+cabal run puzzle -- 99         # numbers in [2,99]
+cabal test
+cabal haddock                  # regenerate the API documentation
+```

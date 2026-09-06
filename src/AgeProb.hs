@@ -20,33 +20,31 @@ __Problem Solution:__
 The code solves this problem more generically via the command line:  ageProb <sum-of-ages>
 The solution to the original problem is [9,2,2].
 -}
-module Main
+module AgeProb
  (
-  Children, main, kids, prod, prodSort, prodGroup, ambiguousProds, oldestSon, potentialSolns, solns
+  Children, kids, prod, prodSort, prodGroup, ambiguousProds, oldestSon, potentialSolns, solns
  )
 
 where
 
-import System.Environment  (getArgs)
-import Data.List (foldl', groupBy, sortBy)
-import Text.Read (readMaybe)
+import Data.List (groupBy, sortOn)
 
 -- | Type 'Children' is a list of ages.
 type Children = [Int]
 
 -- | List all possible children in canonical order (oldest to youngest) which sum to n.
--- These are lists of length 3 that are integers. 
+-- These are lists of length 3 that are positive integers. 
 -- Note: There are cases where some children may be the same age.
 kids :: Int -> [Children]
-kids n = [ [x,y,z] | x <- [1..n], y <- [1..x], z <- [1..y], x + y + z == n]
+kids n = [ [x,y,z] | x <- [1..n], y <- [1..x], let z = n - x - y, z >= 1, z <= y ]
 
 -- | Take a list of children and return the product of their ages.
 prod :: Children -> Int
-prod = foldl' (*) 1
+prod = product
  
--- | Produce a sorted list of all possible children whose ages sum to <n>.
+-- | Produce a list of all possible children whose ages sum to <n>, sorted by age product.
 prodSort :: Int -> [Children]
-prodSort n = sortBy (\x y -> compare (prod x) (prod y)) (kids n)
+prodSort = sortOn prod . kids
 
 -- | Group lists of children by equal age products.
 -- Assumes that the input list is sorted with <prodSort>.
@@ -61,10 +59,10 @@ prodGroup = groupBy (\x y -> prod x == prod y)
 ambiguousProds :: [[Children]] -> [[Children]]
 ambiguousProds = filter (\case (_:_:_) -> True; _ -> False) 
 
--- | Check a child list for an eldest son.
+-- | Check a child list (in canonical, oldest first, order) for a unique eldest son.
 oldestSon :: Children -> Bool
 oldestSon (a:b:_) = a /= b
-oldestSon _        = False
+oldestSon _       = False
 
 -- | Get Potential Solutions.
 -- Strategy: Get all potential solutions based on the following criterion:
@@ -88,17 +86,3 @@ potentialSolns n = map (filter oldestSon) $ ambiguousProds (prodGroup (prodSort 
 -- together to get all possible solutions.
 solns :: Int -> [Children]
 solns n = concat $ filter (\case [_] -> True; _ -> False) (potentialSolns n)
-
-          
--- | Have user input the sum of the three sons ages, this program will provide all solutions.
--- That is: program_name 13
-main :: IO ()
-main = do args <- getArgs
-          case args of
-            [arg] -> case readMaybe arg :: Maybe Int of
-                       Just n  -> do putStr "List of solutions: "
-                                     print $ solns n
-                       Nothing -> putStrLn "Error: argument must be a number"
-            _     -> putStrLn "Usage: ageProb sum-of-ages"
-
-            
